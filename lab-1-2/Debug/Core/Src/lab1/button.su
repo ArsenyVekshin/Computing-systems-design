@@ -1,0 +1,2 @@
+../Core/Src/lab1/button.c:4:12:get_click	16	static
+../Core/Src/lab1/button.c:24:6:is_btn_pressed	16	static

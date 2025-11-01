@@ -1,0 +1,30 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+# Toolchain: GNU Tools for STM32 (10.3-2021.10)
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+C_SRCS += \
+../Core/Src/lab2/lab2.c \
+../Core/Src/lab2/uart_lib.c 
+
+OBJS += \
+./Core/Src/lab2/lab2.o \
+./Core/Src/lab2/uart_lib.o 
+
+C_DEPS += \
+./Core/Src/lab2/lab2.d \
+./Core/Src/lab2/uart_lib.d 
+
+
+# Each subdirectory must supply rules for building sources it contributes
+Core/Src/lab2/%.o Core/Src/lab2/%.su: ../Core/Src/lab2/%.c Core/Src/lab2/subdir.mk
+	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F427xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
+
+clean: clean-Core-2f-Src-2f-lab2
+
+clean-Core-2f-Src-2f-lab2:
+	-$(RM) ./Core/Src/lab2/lab2.d ./Core/Src/lab2/lab2.o ./Core/Src/lab2/lab2.su ./Core/Src/lab2/uart_lib.d ./Core/Src/lab2/uart_lib.o ./Core/Src/lab2/uart_lib.su
+
+.PHONY: clean-Core-2f-Src-2f-lab2
+

@@ -1,0 +1,7 @@
+../Core/Inc/lab2/utils.h:6:6:string_equals	16	static
+../Core/Inc/lab2/utils.h:8:6:starts_with	16	static
+../Core/Src/lab2/uart_lib.c:20:6:println_char	24	static
+../Core/Src/lab2/uart_lib.c:27:6:print	16	static
+../Core/Src/lab2/uart_lib.c:35:6:println	16	static
+../Core/Src/lab2/uart_lib.c:40:6:print_format	16	static
+../Core/Src/lab2/uart_lib.c:52:6:receive	16	static
