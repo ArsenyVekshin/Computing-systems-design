@@ -61,10 +61,20 @@ void parse_cmd() {
 
 void lab2_while_func() {
     if (is_btn_pressed()) {
-        print_format("interupt enabled = %d", !uart.use_interrupt);
+        bool new_mode = !uart.use_interrupt;
+        print_format("interupt enabled = %d", new_mode);
         blink_by_led(RED, BLINK_TIME);
         blink_by_led(RED, BLINK_TIME);
-        uart.use_interrupt = !uart.use_interrupt;
+
+        if (new_mode) {
+            // Включаем режим прерываний - запускаем прием
+            uart.use_interrupt = true;
+            HAL_UART_Receive_IT(&huart6, (uint8_t*)&uart.rx_byte, 1);
+        } else {
+            // Выключаем режим прерываний - останавливаем прием
+            uart.use_interrupt = false;
+            HAL_UART_AbortReceive_IT(&huart6);
+        }
     }
     if(receive()) {
         if (state.new_pass_flag) {

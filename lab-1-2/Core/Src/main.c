@@ -120,8 +120,6 @@ int main(void)
     // Инициализация буферов UART
     tx_buffer_init(&uart.tx_buffer);
     rx_buffer_init(&uart.rx_buffer);
-    // Запускаем первый прием байта в режиме прерываний
-    HAL_UART_Receive_IT(&huart6, (uint8_t*)&uart.rx_byte, 1);
   #endif
   
   /* USER CODE END 2 */
