@@ -47,11 +47,23 @@
 /* USER CODE BEGIN PM */
 
 #if LAB_N == 2
+    // Callback при завершении приема одного байта
     void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) { 
-        uart.is_char_received = true; 
+        if (huart == &huart6) {
+            // Добавляем принятый байт в RX буфер
+            rx_buffer_put(&uart.rx_buffer, uart.rx_byte);
+            // Запускаем прием следующего байта
+            HAL_UART_Receive_IT(&huart6, (uint8_t*)&uart.rx_byte, 1);
+        }
     }
+    
+    // Callback при завершении передачи одного байта
     void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) { 
-        uart.is_transmitted = true; 
+        if (huart == &huart6) {
+            uart.is_transmitting = false;
+            // Запускаем передачу следующего байта из буфера
+            uart_start_tx();
+        }
     }
 #endif
 /* USER CODE END PM */
@@ -103,6 +115,15 @@ int main(void)
   MX_GPIO_Init();
   MX_USART6_UART_Init();
   /* USER CODE BEGIN 2 */
+  
+  #if LAB_N == 2
+    // Инициализация буферов UART
+    tx_buffer_init(&uart.tx_buffer);
+    rx_buffer_init(&uart.rx_buffer);
+    // Запускаем первый прием байта в режиме прерываний
+    HAL_UART_Receive_IT(&huart6, (uint8_t*)&uart.rx_byte, 1);
+  #endif
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */

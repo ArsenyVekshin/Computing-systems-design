@@ -12,9 +12,80 @@ struct UART_status uart = {
     .last_received_char = '\0',
     .cmd = "",
     .use_interrupt = false,
-    .is_transmitted = true,
-    .is_char_received = false
+    .is_transmitting = false,
+    .tx_byte = '\0',
+    .rx_byte = '\0'
 };
+
+void tx_buffer_init(RingBuffer_TX* buf) {
+    buf->head = 0;
+    buf->tail = 0;
+    buf->count = 0;
+}
+
+void rx_buffer_init(RingBuffer_RX* buf) {
+    buf->head = 0;
+    buf->tail = 0;
+    buf->count = 0;
+}
+
+bool tx_buffer_put(RingBuffer_TX* buf, char data) {
+    if (buf->count >= TX_BUFFER_SIZE) {
+        return false; // буфер переполнен
+    }
+    buf->buffer[buf->head] = data;
+    buf->head = (buf->head + 1) % TX_BUFFER_SIZE;
+    buf->count++;
+    return true;
+}
+
+bool tx_buffer_get(RingBuffer_TX* buf, char* data) {
+    if (buf->count == 0) {
+        return false; // буфер пуст
+    }
+    *data = buf->buffer[buf->tail];
+    buf->tail = (buf->tail + 1) % TX_BUFFER_SIZE;
+    buf->count--;
+    return true;
+}
+
+bool rx_buffer_put(RingBuffer_RX* buf, char data) {
+    if (buf->count >= RX_BUFFER_SIZE) {
+        return false; // буфер переполнен
+    }
+    buf->buffer[buf->head] = data;
+    buf->head = (buf->head + 1) % RX_BUFFER_SIZE;
+    buf->count++;
+    return true;
+}
+
+bool rx_buffer_get(RingBuffer_RX* buf, char* data) {
+    if (buf->count == 0) {
+        return false; // буфер пуст
+    }
+    *data = buf->buffer[buf->tail];
+    buf->tail = (buf->tail + 1) % RX_BUFFER_SIZE;
+    buf->count--;
+    return true;
+}
+
+uint16_t tx_buffer_available(RingBuffer_TX* buf) {
+    return buf->count;
+}
+
+uint16_t rx_buffer_available(RingBuffer_RX* buf) {
+    return buf->count;
+}
+
+// Функция для запуска передачи из TX буфера
+void uart_start_tx() {
+    if (!uart.is_transmitting && tx_buffer_available(&uart.tx_buffer) > 0) {
+        if (tx_buffer_get(&uart.tx_buffer, &uart.tx_byte)) {
+            uart.is_transmitting = true;
+            HAL_UART_Transmit_IT(&huart6, (uint8_t*)&uart.tx_byte, 1);
+        }
+    }
+}
 
 
 void println_char(const char c) {
@@ -26,10 +97,18 @@ void println_char(const char c) {
 
 void print(const char * content) {
 	if (uart.use_interrupt) {
-		while (!uart.is_transmitted);
-		uart.is_transmitted = false;
-		HAL_UART_Transmit_IT(&huart6, (void *) content, strlen(content));
-	} else HAL_UART_Transmit(&huart6, (void *) content, strlen(content), UART_TIMEOUT);
+		// В режиме прерываний добавляем данные в TX буфер
+		size_t len = strlen(content);
+		for (size_t i = 0; i < len; i++) {
+			// Ждем, пока в буфере появится место (если переполнен)
+			while (!tx_buffer_put(&uart.tx_buffer, content[i])) { }
+		}
+		// Запускаем передачу, если она еще не идет
+		uart_start_tx();
+	} else {
+		// В обычном режиме - блокирующая передача
+		HAL_UART_Transmit(&huart6, (void *) content, strlen(content), UART_TIMEOUT);
+	}
 }
 
 void println(const char *message) {
@@ -39,7 +118,6 @@ void println(const char *message) {
 
 void print_format(const char * format, ...) {
 	static char buffer[1024];
-	if (uart.use_interrupt) while (!uart.is_transmitted);
 	va_list ap;
 	va_start(ap, format);
 	vsnprintf(buffer, sizeof(buffer), format, ap);
@@ -51,14 +129,18 @@ void print_format(const char * format, ...) {
 // receive cmd on pattern "*\n"
 bool receive() {
     if (uart.use_interrupt) {
-        if (!uart.is_char_received) {
-            HAL_UART_Receive_IT(&huart6, (void *) &uart.last_received_char, sizeof(uart.last_received_char));
+        // В режиме прерываний читаем из RX буфера
+        if (!rx_buffer_get(&uart.rx_buffer, &uart.last_received_char)) {
+            return false; // буфер пуст, нет данных
+        }
+    } else {
+        // В обычном режиме - блокирующий прием
+        if (HAL_UART_Receive(&huart6, (void *) &uart.last_received_char, sizeof(uart.last_received_char), UART_TIMEOUT) != HAL_OK) {
             return false;
         }
-    } else if (HAL_UART_Receive(&huart6, (void *) &uart.last_received_char, sizeof(uart.last_received_char), UART_TIMEOUT) != HAL_OK) return false;
+    }
     
     println(" ");
-    uart.is_char_received = false;
     
     switch (uart.last_received_char) {
     	case '\b':
