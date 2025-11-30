@@ -6,7 +6,6 @@
 #include "lab4/keyboard.h"
 #include "lab-1-2/uart_lib.h"
 
-// Адрес клавиатуры PCA9538
 #define KBRD_ADDR 0xE2
 
 // Регистры PCA9538
@@ -50,7 +49,6 @@ struct kb_event kb_event_pop() {
     return evt;
 }
 
-// Сброс I2C шины если она залипла
 static void I2C_Bus_Reset(I2C_HandleTypeDef *hi2c) {
     __HAL_I2C_DISABLE(hi2c);
     HAL_Delay(10);
@@ -66,7 +64,7 @@ static void I2C_Bus_Reset(I2C_HandleTypeDef *hi2c) {
     
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_SET);
     
-    // Генерируем 9 тактов SCL для сброса залипшего устройства
+    // Генерируем 9 тактов SCL для сброса устройства
     for (int i = 0; i < 9; i++) {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
         HAL_Delay(1);
@@ -94,7 +92,6 @@ static void I2C_Bus_Reset(I2C_HandleTypeDef *hi2c) {
     HAL_Delay(10);
 }
 
-// Инициализация клавиатуры (как Set_Keyboard в SDK_Keyboard)
 static HAL_StatusTypeDef kb_set(I2C_HandleTypeDef *i2c) {
     HAL_StatusTypeDef ret;
     uint8_t buf = 0;
@@ -107,18 +104,15 @@ static HAL_StatusTypeDef kb_set(I2C_HandleTypeDef *i2c) {
 }
 
 void kb_init(I2C_HandleTypeDef *i2c) {
-    // Сброс I2C шины при инициализации
     I2C_Bus_Reset(i2c);
     kb_set(i2c);
 }
 
-// Проверка одного ряда клавиатуры (как Check_Row в SDK_Keyboard)
 static uint8_t kb_check_row(I2C_HandleTypeDef *i2c, uint8_t row_mask) {
     uint8_t nkey = 0;
     uint8_t buf;
     uint8_t kbd_in;
 
-    // Инициализация перед сканированием
     if (kb_set(i2c) != HAL_OK) return 0;
 
     // Установка CONFIG регистра для выбора ряда
@@ -148,7 +142,6 @@ void kb_scan_step(I2C_HandleTypeDef *i2c) {
     static bool output_keys[12] = { 0 };
     static uint32_t key_time[12] = { 0 };
     
-    // Сканируем все 4 ряда
     for (uint8_t row = 0; row < 4; ++row) {
         uint8_t key_state = kb_check_row(i2c, row_masks[row]);
         
@@ -165,7 +158,7 @@ void kb_scan_step(I2C_HandleTypeDef *i2c) {
         }
     }
     
-    // Проверка на одновременное нажатие более 2 клавиш (защита от ghosting)
+    // Проверка на одновременное нажатие более 2 клавиш
     uint8_t count = 0;
     for (int i = 0; i < 12; ++i) {
         if (input_keys[i]) ++count;
@@ -174,7 +167,6 @@ void kb_scan_step(I2C_HandleTypeDef *i2c) {
         memset(input_keys, 0, sizeof(input_keys));
     }
     
-    // Обработка событий с debounce
     for (int i = 0; i < 12; ++i) {
         const uint32_t t = HAL_GetTick();
         if (output_keys[i] == input_keys[i]) {

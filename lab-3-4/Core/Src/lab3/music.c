@@ -66,10 +66,8 @@ static void Music_set_volume(uint16_t volume) {
 
 void set_frequency(uint32_t freq_millis) {
     if (freq_millis == 0) {
-        // Остановить звук - установить 0 громкость
         Music_set_volume(MUSIC_VOLUME_MUTE);
     } else {
-        // Конвертируем из милли-Гц в Гц
         uint32_t freq_hz = freq_millis / 1000;
         if (freq_hz > 0) {
             TIM2->PSC = ((2 * HAL_RCC_GetPCLK1Freq()) / (2 * MUSIC_VOLUME_MAX * freq_hz)) - 1;
